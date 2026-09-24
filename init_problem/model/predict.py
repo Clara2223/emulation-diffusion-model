@@ -31,20 +31,26 @@ def sample_score(model, mean, std, n_samples=1_000, n_levels=12, steps_per_level
     model.eval()
     state = torch.randn(n_samples, 5, device=DEVICE)
     sigmas = torch.exp(torch.linspace(np.log(1.0), np.log(0.02), n_levels, device=DEVICE))
+    
     with torch.no_grad():
+        
         for sigma in sigmas:
             sigma_batch = torch.full((n_samples,), sigma, device=DEVICE)
             step_size = 0.02 * sigma**2
+            
             for _ in range(steps_per_level):
                 state = state + step_size * model(state, sigma_batch)
                 state = state + torch.sqrt(2 * step_size) * torch.randn_like(state)
+    
+    
     samples = state.cpu().numpy() * std.cpu().numpy() + mean.cpu().numpy()
     samples[:, 4] = potential(samples[:, 0], samples[:, 1])
+    
     return samples
 
 
 def calculate_einstein_diffusion(positions, dt=0.005):
-    """Estimate diffusion from the late-time slope of the MSD."""
+    """Estimate diffusion from the 'late-time' slope of the MSD."""
     displacement = positions - positions[0]
     time = np.arange(len(positions)) * dt
     msd = np.sum(displacement**2, axis=1)
@@ -63,15 +69,20 @@ def calculate_kramers_rate(kBT=0.4, mass=1.0, gamma=1.0):
         - 2 * well
         + potential(-1.0 - dx, 0.0)
     ) / dx**2
+    
     barrier_curvature = (
         potential(dx, 0.0) - 2 * barrier + potential(-dx, 0.0)
     ) / dx**2
+    
     omega_well = np.sqrt(well_curvature / mass)
     omega_barrier = np.sqrt(abs(barrier_curvature) / mass)
+    
     transmission = np.sqrt(1 + (gamma / (2 * omega_barrier)) ** 2) - gamma / (
         2 * omega_barrier
     )
+    
     rate = transmission * omega_well / (2 * np.pi) * np.exp(-barrier_height / kBT)
+    
     return rate, barrier_height
 
 

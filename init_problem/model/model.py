@@ -25,7 +25,7 @@ class PhaseSpaceScoreNet(nn.Module):
         self.register_buffer("frequencies", frequencies)
         self.net = nn.Sequential(
             nn.Linear(STATE_DIM + embedding_dim, hidden_dim),
-            nn.SiLU(),
+            nn.SiLU(),                                  #Sigmoid Linear unit (swish), good for gradient flow and smoothness
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
             nn.Linear(hidden_dim, STATE_DIM),

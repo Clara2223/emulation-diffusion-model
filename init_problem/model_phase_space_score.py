@@ -2,7 +2,6 @@
 
 from datetime import datetime
 from pathlib import Path
-
 from torch.utils.data import DataLoader, TensorDataset
 
 from model.data import load_equilibrium_bundle
@@ -20,28 +19,47 @@ from model.train import train_score
 DATA_PATH = Path(__file__).parent / "train_data" / (
     "double_well_data_100000000steps_50000burn_20260918_115938.npz"
 )
-TRAIN_STEPS = 2_0000
-MAX_TRAINING_SAMPLES = 50_0000
-GENERATED_SAMPLES = 2_000
+
+#/Users/clarawimmelmann/Desktop/Energy_specialCourse/init_problem/train_data/periodic_double_well_chain_100000steps_5000burn.npz
+
+epochs=21
+batch_size=512
+total_samples=50_0000
+steps_per_epoch=total_samples/batch_size   
+total_steps = epochs * steps_per_epoch  #20k ish
+#-------------------------------------
+TRAIN_STEPS = 200_000
+MAX_TRAINING_SAMPLES = 100_0000
+GENERATED_SAMPLES = 20_000
 
 
-# 1. Load positions, velocities, energies, and diagnostic MD data.
+# Load MD data.
 train_data, true_samples, positions, _ = load_equilibrium_bundle(
     DATA_PATH,
     max_samples=MAX_TRAINING_SAMPLES,
     diffusion_frames=50_000,
 )
 
-# 2. Standardize the five-dimensional state: x, y, vx, vy, and energy.
+# Standardize the 5D state (x, y, vx, vy, and energy).
 mean = train_data.mean(dim=0).to(DEVICE)
 std = train_data.std(dim=0).clamp_min(1e-6).to(DEVICE)
 loader = DataLoader(TensorDataset(train_data), batch_size=512, shuffle=True)
 
-# 3. Create and train the current score model.
+# Create and train score model.
+#-------------------------------------
+# - Target: The model learns the Score Function S(x) = ∇_x log p(x), where p(x)
+#   is the 5D equilibrium Boltzmann distribution p(x) ∝ exp(-U(x) / k_B*T).
+# - Key Insight: Taking the log gradient eliminates the intractable partition
+#   function Z (∇_x log Z = 0). The network outputs a 5D vector pointing uphill
+#   toward higher probability density (lower potential energy).
 model = PhaseSpaceScoreNet().to(DEVICE)
 model = train_score(model, loader, mean, std, steps=TRAIN_STEPS)
 
-# 4. Generate equilibrium predictions with annealed Langevin sampling.
+# Generate equilibrium predictions with 'annealed' Langevin sampling
+# ------------------------------------------------------------------------------
+# - Langevin Dynamics updates states via:
+#   x_{k+1} = x_k + (ε/2) * [Score Vector] + sqrt(ε) * [Gaussian Noise]
+#   This balances deterministic drift into energy wells with thermal kicks in discrete level steps of size ε.
 generated = sample_score(
     model,
     mean,
@@ -51,7 +69,7 @@ generated = sample_score(
     steps_per_level=6,
 )
 
-# 5. Calculate the current diagnostics and save the comparison plot.
+# Calculate the prediction diagnostics and save the comparison plot.
 einstein_diffusion = calculate_einstein_diffusion(positions)
 kramers_rate, barrier_height = calculate_kramers_rate()
 output_path = Path(__file__).parent / "predictions" / (

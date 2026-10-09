@@ -26,7 +26,7 @@ def load_equilibrium_bundle(path: Path, max_samples: int, diffusion_frames: int,
         count = min(max_samples, len(positions))
         indices = rng.choice(len(positions), size=count, replace=False)
         samples = positions[indices]
-        true_samples = positions[:5000].copy()
+        true_samples = positions.copy()
         diffusion_positions = positions[:diffusion_frames].copy()
     return (
         torch.from_numpy(samples.astype(np.float32, copy=False)),

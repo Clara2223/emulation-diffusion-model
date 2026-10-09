@@ -178,10 +178,36 @@ def plot_results(true_samples, generated, output_path, show=False):
     )
     axes[0, 1].set_title("Potential energy")
     axes[0, 1].legend()
-    axes[1, 0].plot(generated[:, 0], linewidth=0.7)
+    '''axes[1, 0].plot(generated[:, 0], linewidth=0.7)
     axes[1, 0].set_title("Generated x samples")
     axes[1, 1].plot(generated[:, 1], linewidth=0.7)
-    axes[1, 1].set_title("Generated y samples")
+    axes[1, 1].set_title("Generated y samples")'''
+    
+    # [1, 0] SUBFIGUR: 1D Position Marginal vs Potential Profile ---
+    ax3 = axes[1, 0]
+    ax3_twin = ax3.twinx()
+    
+    # Histogram af x-værdier (husk at definere x_traj_arr før, f.eks. true_samples[:, 0] eller generated[:, 0])
+    # Her antager jeg, at du vil plotte generated x-samples:
+    ax3.hist(generated[:, 0], bins=60, density=True, color='teal', alpha=0.6, label='Sample Density p(x)')
+    
+    # Potentiale kurve på tvilling-aksen
+    x_line = np.linspace(-2.5, 2.5, 300)
+    ax3_twin.plot(x_line, potential(x_line, 0.0), color='black', lw=2, linestyle='--', label='V(x,0)')
+    
+    ax3.set_title("Marginal Distribution p(x) & Energy Barrier")
+    ax3.set_xlabel("x")
+    ax3.set_ylabel("Probability Density", color='teal')
+    ax3_twin.set_ylabel("Potential Energy V(x,0)", color='black')
+    
+    # Kombineret plot for Generated X & Y Samples ---
+    axes[1, 1].plot(generated[:, 0], linewidth=0.7, label='Generated x', alpha=0.8)
+    axes[1, 1].plot(generated[:, 1], linewidth=0.7, label='Generated y', alpha=0.8)
+    axes[1, 1].set_title("Generated X & Y Samples")
+    axes[1, 1].set_xlabel("Steps / Index")
+    axes[1, 1].set_ylabel("Position")
+    axes[1, 1].legend(loc='upper right')
+    
     fig.tight_layout()
     fig.savefig(output_path, dpi=160)
     if show:

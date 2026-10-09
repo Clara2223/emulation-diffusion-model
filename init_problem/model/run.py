@@ -17,7 +17,14 @@ from .predict import (
 )
 from .train import train_flow, train_score
 
-DEFAULT_DATA = Path(__file__).resolve().parents[1] / "train_data" / "double_well_data_100000000steps_50000burn_20260918_115938.npz"
+#DEFAULT_DATA = Path(__file__).resolve().parents[1] / "train_data" / "2D_double_well_data_100000000steps_50000burn.npz"
+DEFAULT_DATA = Path(__file__).resolve().parents[1] / "train_data" / "3D_double_well_data_100000000steps_50000burn.npz"
+
+#DEFAULT_DATA = Path(__file__).resolve().parents[1] / "train_data" / "2D_periodic_double_well_chain_1e8steps_5e4burn_20261009_0930.npz",
+#DEFAULT_DATA = Path(__file__).resolve().parents[1] / "train_data" / "2D_double_well_chain_1e8steps_5e4burn_20261009_0930.npz",
+    
+
+#"double_well_data_100000000steps_50000burn_20260918_115938.npz"
 
 def main():
     #inputs 

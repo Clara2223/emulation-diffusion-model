@@ -9,3 +9,5 @@ timestamp,png,model_version,einstein_diffusion,kramers_barrier_height,kramers_tr
 2026-10-08T21:03:07,phase_space_score_20261008_210306.png,phase_space_flow_v1,0.00054518,2.08899469,0.00254589,mps
 2026-10-08T21:06:56,xy_diffusion_20261008_210656.png,xy_diffusion_v1,0.00054518,2.08899469,0.00254589,cpu
 2026-10-08T21:08:02,xy_flow_20261008_210801.png,xy_flow_v1,0.00054518,2.08899469,0.00254589,cpu
+2026-10-09T09:55:57,xy_diffusion_20261009_0955.png,xy_diffusion_v1,0.00008842,2.08899469,0.00254589,cpu
+2026-10-09T09:58:43,xy_diffusion_20261009_0958.png,xy_diffusion_v1,0.00008842,2.08899469,0.00254589,cpu

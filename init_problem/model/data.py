@@ -4,46 +4,34 @@ import numpy as np
 import torch
 
 
-STATE_DIM = 5
+STATE_DIM = 2
 
 
 def load_equilibrium_data(path: Path, max_samples: int, seed: int = 7):
-    """Load only the state samples needed by the current model."""
+    """Load a random subset of two-dimensional position samples."""
     with np.load(path) as data:
         positions = data["positions"]
-        velocities = data["velocities"]
-        energies = data["energy"][:, None]
         rng = np.random.default_rng(seed)
         count = min(max_samples, len(positions))
         indices = rng.choice(len(positions), size=count, replace=False)
-        states = np.concatenate(
-            (positions[indices], velocities[indices], energies[indices]), axis=1
-        )
-    return torch.from_numpy(states.astype(np.float32, copy=False))
+        samples = positions[indices]
+    return torch.from_numpy(samples.astype(np.float32, copy=False))
 
 
 def load_equilibrium_bundle(path: Path, max_samples: int, diffusion_frames: int, seed: int = 7):
-    """Read the archive once for the current equilibrium experiment."""
+    """Read 2D training samples and position-only reference data."""
     with np.load(path) as data:
         positions = data["positions"]
-        velocities = data["velocities"]
-        energies = data["energy"][:, None]
         rng = np.random.default_rng(seed)
         count = min(max_samples, len(positions))
         indices = rng.choice(len(positions), size=count, replace=False)
-        states = np.concatenate(
-            (positions[indices], velocities[indices], energies[indices]), axis=1
-        )
-        true_samples = np.column_stack(
-            (positions[:5000], velocities[:5000], energies[:5000, 0])
-        )
+        samples = positions[indices]
+        true_samples = positions[:5000].copy()
         diffusion_positions = positions[:diffusion_frames].copy()
-        diffusion_velocities = velocities[:diffusion_frames].copy()
     return (
-        torch.from_numpy(states.astype(np.float32, copy=False)),
+        torch.from_numpy(samples.astype(np.float32, copy=False)),
         true_samples,
         diffusion_positions,
-        diffusion_velocities,
     )
 
 

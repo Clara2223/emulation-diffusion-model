@@ -3,29 +3,25 @@ import torch
 import torch.nn as nn
 
 
-DEVICE = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps"
-    if torch.backends.mps.is_available()
-    else "cpu"
-)
-STATE_DIM = 5
-MODEL_VERSION = "equilibrium_score_v1_small"
+DEVICE = ("cuda" if torch.cuda.is_available() else "cpu")
+STATE_DIM = 2
+MODEL_VERSION = "equilibrium_score_v2"
 
 
-class PhaseSpaceScoreNet(nn.Module):
-    """Small score network for (x, y, vx, vy, energy)."""
+class ScoreNet(nn.Module):
+    """small score network for (x, y)"""
 
     def __init__(self, hidden_dim=64, embedding_dim=16):
         super().__init__()
-        frequencies = torch.exp(
-            torch.linspace(np.log(1.0), np.log(1000.0), embedding_dim // 2)
-        )
+        #noise levels: tells NN how much noise is added to data. 
+        # needed to predict the score vector at that noise level.
+        frequencies = torch.exp(torch.linspace(np.log(1.0), np.log(1000.0), embedding_dim // 2))
         self.register_buffer("frequencies", frequencies)
+        
         self.net = nn.Sequential(
             nn.Linear(STATE_DIM + embedding_dim, hidden_dim),
-            nn.SiLU(),                                  #Sigmoid Linear unit (swish), good for gradient flow and smoothness
+            nn.SiLU(),                                  
+            #Sigmoid Linear unit (swish), good for gradient flow and smoothness
             nn.Linear(hidden_dim, hidden_dim),
             nn.SiLU(),
             nn.Linear(hidden_dim, STATE_DIM),

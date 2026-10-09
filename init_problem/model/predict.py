@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from .model import DEVICE
+from .data import STATE_DIM
+from .diffusion_model import DEVICE
 
 
-LOG_FIELDS = [
-    "timestamp",
+LOG_FIELDS = ["timestamp",
     "png",
     "model_version",
     "einstein_diffusion",
@@ -19,17 +19,17 @@ LOG_FIELDS = [
     "device",
 ]
 
-
+#ål: remember to chainge
 def potential(x, y):
     g1 = 3.0 * np.exp(-((x + 1.0) ** 2 + y**2) / (2 * 0.5**2))
     g2 = 3.0 * np.exp(-((x - 1.0) ** 2 + y**2) / (2 * 0.5**2))
     return -(g1 + g2) + 0.1 * (x**2 + y**2)
 
-
+#diffusion model predictions
 def sample_score(model, mean, std, n_samples=1_000, n_levels=12, steps_per_level=6):
     """Generate equilibrium samples with annealed Langevin dynamics."""
     model.eval()
-    state = torch.randn(n_samples, 5, device=DEVICE)
+    state = torch.randn(n_samples, STATE_DIM, device=DEVICE)
     sigmas = torch.exp(torch.linspace(np.log(1.0), np.log(0.02), n_levels, device=DEVICE))
     
     with torch.no_grad():
@@ -43,12 +43,24 @@ def sample_score(model, mean, std, n_samples=1_000, n_levels=12, steps_per_level
                 state = state + torch.sqrt(2 * step_size) * torch.randn_like(state)
     
     
-    samples = state.cpu().numpy() * std.cpu().numpy() + mean.cpu().numpy()
-    samples[:, 4] = potential(samples[:, 0], samples[:, 1])
-    
-    return samples
+    return state.cpu().numpy() * std.cpu().numpy() + mean.cpu().numpy()
+
+#flow model predictions
+def sample_flow(model, mean, std, n_samples=1_000, ode_steps=100):
+    """Generate samples by integrating the learned flow from noise to data."""
+    model.eval()
+    state = torch.randn(n_samples, STATE_DIM, device=DEVICE)
+    step_size = 1.0 / ode_steps
+
+    with torch.no_grad():
+        for step in range(ode_steps):
+            time = torch.full((n_samples,), step / ode_steps, device=DEVICE)
+            state = state + step_size * model(state, time)
+
+    return state.cpu().numpy() * std.cpu().numpy() + mean.cpu().numpy()
 
 
+#stats/measures: ål: I'm not sure about this diffusion coefficient calculation
 def calculate_einstein_diffusion(positions, dt=0.005):
     """Estimate diffusion from the 'late-time' slope of the MSD."""
     displacement = positions - positions[0]
@@ -85,7 +97,7 @@ def calculate_kramers_rate(kBT=0.4, mass=1.0, gamma=1.0):
     
     return rate, barrier_height
 
-
+#log file
 def log_prediction(
     output_path,
     model_version,
@@ -100,7 +112,9 @@ def log_prediction(
     existing_rows = []
     if log_path.exists():
         with log_path.open(newline="", encoding="utf-8") as log_file:
-            existing_rows = list(csv.DictReader(log_file))
+            reader = csv.DictReader(log_file)
+            if reader.fieldnames and "png" in reader.fieldnames:
+                existing_rows = list(reader)
 
     current_png = output_path.name
     known_pngs = {row["png"] for row in existing_rows}
@@ -139,6 +153,7 @@ def log_prediction(
     return log_path
 
 
+#plotting
 def plot_results(true_samples, generated, output_path, show=False):
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), dpi=160)
     x = np.linspace(-2.5, 2.5, 200)
@@ -146,15 +161,27 @@ def plot_results(true_samples, generated, output_path, show=False):
     X, Y = np.meshgrid(x, y)
     axes[0, 0].contour(X, Y, potential(X, Y), levels=12, cmap="Greys", alpha=0.5)
     axes[0, 0].hexbin(generated[:, 0], generated[:, 1], gridsize=35, cmap="plasma", mincnt=1)
-    axes[0, 0].set_title("Generated position density")
-    axes[0, 1].hist(true_samples[:, 4], bins=40, density=True, alpha=0.5, label="MD")
-    axes[0, 1].hist(generated[:, 4], bins=40, density=True, alpha=0.7, label="Generated")
+    axes[0, 0].set_title("Generated x-y density")
+    axes[0, 1].hist(
+        potential(true_samples[:, 0], true_samples[:, 1]),
+        bins=40,
+        density=True,
+        alpha=0.5,
+        label="MD",
+    )
+    axes[0, 1].hist(
+        potential(generated[:, 0], generated[:, 1]),
+        bins=40,
+        density=True,
+        alpha=0.7,
+        label="Generated",
+    )
     axes[0, 1].set_title("Potential energy")
     axes[0, 1].legend()
     axes[1, 0].plot(generated[:, 0], linewidth=0.7)
     axes[1, 0].set_title("Generated x samples")
-    axes[1, 1].plot(generated[:, 2], linewidth=0.7)
-    axes[1, 1].set_title("Generated vx samples")
+    axes[1, 1].plot(generated[:, 1], linewidth=0.7)
+    axes[1, 1].set_title("Generated y samples")
     fig.tight_layout()
     fig.savefig(output_path, dpi=160)
     if show:

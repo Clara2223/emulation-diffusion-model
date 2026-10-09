@@ -22,7 +22,7 @@ def main():
     parser.add_argument("--n-steps", type=int, default=100_000_000)
     parser.add_argument("--burn-in", type=int, default=50_000)
     parser.add_argument("--output-dir", type=Path, default=Path(__file__).parent / "train_data")
-    parser.add_argument("--plot-dir", type=Path, default=Path(__file__).parent / "MD")
+    parser.add_argument("--plot-dir", type=Path, default=Path(__file__).parent)
     args = parser.parse_args()
     if args.n_steps <= args.burn_in:
         parser.error("--n-steps must be greater than --burn-in")

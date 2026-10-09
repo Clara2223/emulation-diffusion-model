@@ -120,6 +120,8 @@ def log_prediction(
     known_pngs = {row["png"] for row in existing_rows}
     for png_path in sorted(output_path.parent.glob("*.png")):
         relative_png = png_path.name
+        if relative_png.endswith("_loss.png"):
+            continue
         if relative_png != current_png and relative_png not in known_pngs:
             existing_rows.append(
                 {
@@ -154,6 +156,21 @@ def log_prediction(
 
 
 #plotting
+def plot_training_loss(losses, output_path, show=False):
+    fig, ax = plt.subplots(figsize=(7, 5), dpi=160)
+    epochs = np.arange(1, len(losses) + 1)
+    ax.plot(epochs, losses, marker="o", linewidth=1.5)
+    ax.set_title("Training Loss by Epoch")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Mean training loss")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=160)
+    if show:
+        plt.show()
+    plt.close(fig)
+
+
 def plot_results(true_samples, generated, output_path, show=False):
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), dpi=160)
     x = np.linspace(-2.5, 2.5, 200)

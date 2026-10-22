@@ -7,6 +7,38 @@ import torch
 STATE_DIM = 2
 
 
+def get_potential_settings(path: Path) -> tuple[str, float, float]:
+    """Read potential metadata, detecting legacy archive types from their names."""
+    with np.load(path) as data:
+        if "potential_type" in data:
+            name = str(data["potential_type"].item()).lower()
+        else:
+            name = Path(path).stem.lower()
+        barrier_amplitude = (
+            float(data["barrier_amplitude"].item()) if "barrier_amplitude" in data else 0.0
+        )
+        barrier_width = (
+            float(data["barrier_width"].item()) if "barrier_width" in data else 0.25
+        )
+
+    if "chain" in name:
+        return "chain", barrier_amplitude, barrier_width
+    if "hbarrier" in name or "h_barrier" in name:
+        if barrier_amplitude <= 0:
+            raise ValueError(
+                f"Archive identifies an H-barrier but has no barrier parameters: {path}"
+            )
+        return "double-well-Hbarrier", barrier_amplitude, barrier_width
+    if "double-well" in name or "double_well" in name:
+        return "double-well", barrier_amplitude, barrier_width
+    raise ValueError(f"Cannot determine potential type for data archive: {path}")
+
+
+def get_potential_type(path: Path) -> str:
+    """Compatibility helper returning only the potential type."""
+    return get_potential_settings(path)[0]
+
+
 def load_equilibrium_data(path: Path, max_samples: int, seed: int = 7):
     """Load a random subset of two-dimensional position samples."""
     with np.load(path) as data:
